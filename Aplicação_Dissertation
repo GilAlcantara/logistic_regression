@@ -1,0 +1,305 @@
+dados <- read.csv(url("https://archive.ics.uci.edu/ml/machine-learning-databases/ionosphere/ionosphere.data"),
+                     header=FALSE)
+dados = na.omit(dados)
+Y = vector()
+for(i in 1:nrow(dados)){
+  if(dados$V35[i] =="g") {Y[i]=0
+  }else{Y[i]=1}
+}
+dados = dados[,-35]
+dados = cbind(dados,Y)
+sam_size = floor(0.7*nrow(dados))
+auc = vector()
+auc2 = vector()
+auc3 = vector()
+auc4 = vector()
+var1 = 0
+var2 = 0
+var4 = 0
+las = 0
+las_mv = 0
+las_aic = 0
+mv_aic = 0
+mt_lasso = matrix(ncol=34,nrow=100,0)
+mt_steplas = matrix(ncol=34,nrow=100,0)
+mt_step = matrix(ncol=34,nrow=100,0)
+for(i in 1:100){
+  train_ind = sample(seq_len(nrow(dados)),size=sam_size)
+  train = dados[train_ind,]
+  test = dados[-train_ind,]
+  
+  #lasso
+  d = model.matrix(train$Y ~ 0+.,data=train)
+  
+  lass = cv.glmnet(y=train$Y,x=d,alpha=1,family="binomial",
+                   type.measure = "auc")
+  lambda_opt = lass$lambda.min 
+  lass = glmnet(y=train$Y,x=d,alpha=1,family="binomial",lambda = lambda_opt)
+  d3 = model.matrix(test$Y ~ 0+.,data=test,s=lambda_opt,type="response")
+  predict3 = predict(lass, newx  = d3)
+  p3 = prediction(predict3,test$Y)
+  
+  for(q in 1:34){
+    if(coef(lass)[q+1]!=0){mt_lasso[i,q]=1}
+  }
+  
+  a = performance(p3,"auc")
+  
+  auc3[i] = as.numeric(a@y.values)
+  
+  #lass+mv
+  vec = coef(lass)
+  
+  no = vector()
+  for(j in 2:nrow(vec)){
+    if(vec[j]==0)no[j] = j 
+  }
+  no = na.omit(no)
+  no = no-1
+  train_1 = train[,-no]
+  if(ncol(train_1)==0) train_1 = train
+  var1 = ncol(train_1)+var1-1
+  model1 = glm(train$Y ~ .,data=train_1,family = binomial(link = "logit")
+               ,control = list(maxit = 100))
+  
+  
+  predict1 = predict(model1, newdata = test, type = 'response')
+  p1 = prediction(predict1,test$Y)
+  
+  a = performance(p1,"auc")
+  auc[i] = as.numeric(a@y.values)
+  
+  #lasso+aic
+  
+  model4 = glm(train$Y ~ .,data=train,family = binomial(link = "logit")
+               ,control = list(maxit = 100))
+  step = stepAIC(model4)
+  d2 = model.matrix(step$formula,data=train)
+  d2 = d2[,-1]
+  
+  beta_com = matrix(ncol=34,nrow=1,0)
+  if(!is.na(step$coefficients["V1"])) beta_com[1] = step$coefficients["V1"]
+  if(!is.na(step$coefficients["V2"])) beta_com[2] = step$coefficients["V2"]
+  if(!is.na(step$coefficients["V3"])) beta_com[3] = step$coefficients["V3"]
+  if(!is.na(step$coefficients["V4"])) beta_com[4] = step$coefficients["V4"]
+  if(!is.na(step$coefficients["V5"])) beta_com[5] = step$coefficients["V5"]
+  if(!is.na(step$coefficients["V6"])) beta_com[6] = step$coefficients["V6"]
+  if(!is.na(step$coefficients["V7"])) beta_com[7] = step$coefficients["V7"]
+  if(!is.na(step$coefficients["V8"])) beta_com[8] = step$coefficients["V8"]
+  if(!is.na(step$coefficients["V9"])) beta_com[9] = step$coefficients["V9"]
+  if(!is.na(step$coefficients["V10"])) beta_com[10] = step$coefficients["V10"]
+  if(!is.na(step$coefficients["V11"])) beta_com[11] = step$coefficients["V11"]
+  if(!is.na(step$coefficients["V12"])) beta_com[12] = step$coefficients["V12"]
+  if(!is.na(step$coefficients["V13"])) beta_com[13] = step$coefficients["V13"]
+  if(!is.na(step$coefficients["V14"])) beta_com[14] = step$coefficients["V14"]
+  if(!is.na(step$coefficients["V15"])) beta_com[15] = step$coefficients["V15"]
+  if(!is.na(step$coefficients["V16"])) beta_com[16] = step$coefficients["V16"]
+  if(!is.na(step$coefficients["V17"])) beta_com[17] = step$coefficients["V17"]
+  if(!is.na(step$coefficients["V18"])) beta_com[18] = step$coefficients["V18"]
+  if(!is.na(step$coefficients["V19"])) beta_com[19] = step$coefficients["V19"]
+  if(!is.na(step$coefficients["V20"])) beta_com[20] = step$coefficients["V20"]
+  if(!is.na(step$coefficients["V21"])) beta_com[21] = step$coefficients["V21"]
+  if(!is.na(step$coefficients["V22"])) beta_com[22] = step$coefficients["V22"]
+  if(!is.na(step$coefficients["V23"])) beta_com[23] = step$coefficients["V23"]
+  if(!is.na(step$coefficients["V24"])) beta_com[24] = step$coefficients["V24"]
+  if(!is.na(step$coefficients["V25"])) beta_com[25] = step$coefficients["V25"]
+  if(!is.na(step$coefficients["V26"])) beta_com[26] = step$coefficients["V26"]
+  if(!is.na(step$coefficients["V27"])) beta_com[27] = step$coefficients["V27"]
+  if(!is.na(step$coefficients["V28"])) beta_com[28] = step$coefficients["V28"]
+  if(!is.na(step$coefficients["V29"])) beta_com[29] = step$coefficients["V29"]
+  if(!is.na(step$coefficients["V30"])) beta_com[30] = step$coefficients["V30"]
+  if(!is.na(step$coefficients["V31"])) beta_com[31] = step$coefficients["V31"]
+  if(!is.na(step$coefficients["V32"])) beta_com[32] = step$coefficients["V32"]
+  if(!is.na(step$coefficients["V33"])) beta_com[33] = step$coefficients["V33"]
+  if(!is.na(step$coefficients["V34"])) beta_com[34] = step$coefficients["V34"]
+  
+  lass = cv.glmnet(y=train$Y,x=d2,alpha=1,family="binomial",
+                   type.measure = "auc")
+  lambda_opt = lass$lambda.min 
+  lass = glmnet(y=train$Y,x=d2,alpha=1,family="binomial",lambda = lambda_opt)
+  var4 = sum(coef(lass)!=0)+var4-1
+  d4 = as.matrix(subset(test,select = c(colnames(d2))))
+  predict4 = predict(lass, newx  = d4,s=lambda_opt,type="response")
+  p4 = prediction(predict4,test$Y)
+  
+  l_ = as.matrix(coef(lass))
+  if(beta_com[1]!=0) beta_com[1] = l_["V1",]
+  if(beta_com[2]!=0) beta_com[2] = l_["V2",]
+  if(beta_com[3]!=0) beta_com[3] = l_["V3",]
+  if(beta_com[4]!=0) beta_com[4] = l_["V4",]
+  if(beta_com[5]!=0) beta_com[5] = l_["V5",]
+  if(beta_com[6]!=0) beta_com[6] = l_["V6",]
+  if(beta_com[7]!=0) beta_com[7] = l_["V7",]
+  if(beta_com[8]!=0) beta_com[8] = l_["V8",]
+  if(beta_com[9]!=0) beta_com[9] = l_["V9",]
+  if(beta_com[10]!=0) beta_com[10] = l_["V10",]
+  if(beta_com[11]!=0) beta_com[11] = l_["V11",]
+  if(beta_com[12]!=0) beta_com[12] = l_["V12",]
+  if(beta_com[13]!=0) beta_com[13] = l_["V13",]
+  if(beta_com[14]!=0) beta_com[14] = l_["V14",]
+  if(beta_com[15]!=0) beta_com[15] = l_["V15",]
+  if(beta_com[16]!=0) beta_com[16] = l_["V16",]
+  if(beta_com[17]!=0) beta_com[17] = l_["V17",]
+  if(beta_com[18]!=0) beta_com[18] = l_["V18",]
+  if(beta_com[19]!=0) beta_com[19] = l_["V19",]
+  if(beta_com[20]!=0) beta_com[20] = l_["V20",]
+  if(beta_com[21]!=0) beta_com[21] = l_["V21",]
+  if(beta_com[22]!=0) beta_com[22] = l_["V22",]
+  if(beta_com[23]!=0) beta_com[23] = l_["V23",]
+  if(beta_com[24]!=0) beta_com[24] = l_["V24",]
+  if(beta_com[25]!=0) beta_com[25] = l_["V25",]
+  if(beta_com[26]!=0) beta_com[26] = l_["V26",]
+  if(beta_com[27]!=0) beta_com[27] = l_["V27",]
+  if(beta_com[28]!=0) beta_com[28] = l_["V28",]
+  if(beta_com[29]!=0) beta_com[29] = l_["V29",]
+  if(beta_com[30]!=0) beta_com[30] = l_["V30",]
+  if(beta_com[31]!=0) beta_com[31] = l_["V31",]
+  if(beta_com[32]!=0) beta_com[32] = l_["V32",]
+  if(beta_com[33]!=0) beta_com[33] = l_["V33",]
+  if(beta_com[34]!=0) beta_com[34] = l_["V34",]
+  if(beta_com[1]!=0) mt_steplas[i,1] = 1
+  if(beta_com[2]!=0) mt_steplas[i,2] = 1
+  if(beta_com[3]!=0) mt_steplas[i,3] = 1
+  if(beta_com[4]!=0) mt_steplas[i,4] = 1
+  if(beta_com[5]!=0) mt_steplas[i,5] = 1
+  if(beta_com[6]!=0) mt_steplas[i,6] = 1
+  if(beta_com[7]!=0) mt_steplas[i,7] = 1
+  if(beta_com[8]!=0) mt_steplas[i,8] = 1
+  if(beta_com[9]!=0) mt_steplas[i,9] = 1
+  if(beta_com[10]!=0) mt_steplas[i,10] = 1
+  if(beta_com[11]!=0) mt_steplas[i,11] = 1
+  if(beta_com[12]!=0) mt_steplas[i,12] = 1
+  if(beta_com[13]!=0) mt_steplas[i,13] = 1
+  if(beta_com[14]!=0) mt_steplas[i,14] = 1
+  if(beta_com[15]!=0) mt_steplas[i,15] = 1
+  if(beta_com[16]!=0) mt_steplas[i,16] = 1
+  if(beta_com[17]!=0) mt_steplas[i,17] = 1
+  if(beta_com[18]!=0) mt_steplas[i,18] = 1
+  if(beta_com[19]!=0) mt_steplas[i,19] = 1
+  if(beta_com[20]!=0) mt_steplas[i,20] = 1
+  if(beta_com[21]!=0) mt_steplas[i,21] = 1
+  if(beta_com[22]!=0) mt_steplas[i,22] = 1
+  if(beta_com[23]!=0) mt_steplas[i,23] = 1
+  if(beta_com[24]!=0) mt_steplas[i,24] = 1
+  if(beta_com[25]!=0) mt_steplas[i,25] = 1
+  if(beta_com[26]!=0) mt_steplas[i,26] = 1
+  if(beta_com[27]!=0) mt_steplas[i,27] = 1
+  if(beta_com[28]!=0) mt_steplas[i,28] = 1
+  if(beta_com[29]!=0) mt_steplas[i,29] = 1
+  if(beta_com[30]!=0) mt_steplas[i,30] = 1
+  if(beta_com[31]!=0) mt_steplas[i,31] = 1
+  if(beta_com[32]!=0) mt_steplas[i,32] = 1
+  if(beta_com[33]!=0) mt_steplas[i,33] = 1
+  if(beta_com[34]!=0) mt_steplas[i,34] = 1
+  
+  a = performance(p4,"auc")
+  
+  auc4[i] = as.numeric(a@y.values)
+  
+  #mv+aic
+  model2 = glm(train$Y ~ .,data=train,family = binomial(link = "logit")
+               ,control = list(maxit = 100))
+  
+  step = stepAIC(model2)
+  
+  model2 = glm(step$formula,data=train,family = binomial(link = "logit"),
+               control = list(maxit = 100))
+  predict2 = predict(model2, test, type = 'response')
+  p2 = prediction(predict2,test$Y)
+  var2 = length(as.vector(model2$coefficients))+var2
+  a = performance(p2,"auc")
+  auc2[i] = as.numeric(a@y.values)
+ 
+   beta_com = matrix(ncol=34,nrow=1,0)
+  if(!is.na(coef(model2)["V1"])) beta_com[1] = coef(model2)["V1"]
+  if(!is.na(coef(model2)["V2"])) beta_com[2] = coef(model2)["V2"]
+  if(!is.na(coef(model2)["V3"])) beta_com[3] = coef(model2)["V3"]
+  if(!is.na(coef(model2)["V4"])) beta_com[4] = coef(model2)["V4"]
+  if(!is.na(coef(model2)["V5"])) beta_com[5] = coef(model2)["V5"]
+  if(!is.na(coef(model2)["V6"])) beta_com[6] = coef(model2)["V6"]
+  if(!is.na(coef(model2)["V7"])) beta_com[7] = coef(model2)["V7"]
+  if(!is.na(coef(model2)["V8"])) beta_com[8] = coef(model2)["V8"]
+  if(!is.na(coef(model2)["V9"])) beta_com[9] = coef(model2)["V9"]
+  if(!is.na(coef(model2)["V10"])) beta_com[10] = coef(model2)["V10"]
+  if(!is.na(coef(model2)["V11"])) beta_com[11] = coef(model2)["V11"]
+  if(!is.na(coef(model2)["V12"])) beta_com[12] = coef(model2)["V12"]
+  if(!is.na(coef(model2)["V13"])) beta_com[13] = coef(model2)["V13"]
+  if(!is.na(coef(model2)["V14"])) beta_com[14] = coef(model2)["V14"]
+  if(!is.na(coef(model2)["V15"])) beta_com[15] = coef(model2)["V15"]
+  if(!is.na(coef(model2)["V16"])) beta_com[16] = coef(model2)["V16"]
+  if(!is.na(coef(model2)["V17"])) beta_com[17] = coef(model2)["V17"]
+  if(!is.na(coef(model2)["V18"])) beta_com[18] = coef(model2)["V18"]
+  if(!is.na(coef(model2)["V19"])) beta_com[19] = coef(model2)["V19"]
+  if(!is.na(coef(model2)["V20"])) beta_com[20] = coef(model2)["V20"]
+  if(!is.na(coef(model2)["V21"])) beta_com[21] = coef(model2)["V21"]
+  if(!is.na(coef(model2)["V22"])) beta_com[22] = coef(model2)["V22"]
+  if(!is.na(coef(model2)["V23"])) beta_com[23] = coef(model2)["V23"]
+  if(!is.na(coef(model2)["V24"])) beta_com[24] = coef(model2)["V24"]
+  if(!is.na(coef(model2)["V25"])) beta_com[25] = coef(model2)["V25"]
+  if(!is.na(coef(model2)["V26"])) beta_com[26] = coef(model2)["V26"]
+  if(!is.na(coef(model2)["V27"])) beta_com[27] = coef(model2)["V27"]
+  if(!is.na(coef(model2)["V28"])) beta_com[28] = coef(model2)["V28"]
+  if(!is.na(coef(model2)["V29"])) beta_com[29] = coef(model2)["V29"]
+  if(!is.na(coef(model2)["V30"])) beta_com[30] = coef(model2)["V30"]
+  if(!is.na(coef(model2)["V31"])) beta_com[31] = coef(model2)["V31"]
+  if(!is.na(coef(model2)["V32"])) beta_com[32] = coef(model2)["V32"]
+  if(!is.na(coef(model2)["V33"])) beta_com[33] = coef(model2)["V33"]
+  if(!is.na(coef(model2)["V34"])) beta_com[34] = coef(model2)["V34"]
+   if(beta_com[1]!=0) mt_step[i,1] = 1
+   if(beta_com[2]!=0) mt_step[i,2] = 1
+   if(beta_com[3]!=0) mt_step[i,3] = 1
+   if(beta_com[4]!=0) mt_step[i,4] = 1
+   if(beta_com[5]!=0) mt_step[i,5] = 1
+   if(beta_com[6]!=0) mt_step[i,6] = 1
+   if(beta_com[7]!=0) mt_step[i,7] = 1
+   if(beta_com[8]!=0) mt_step[i,8] = 1
+   if(beta_com[9]!=0) mt_step[i,9] = 1
+   if(beta_com[10]!=0) mt_step[i,10] = 1
+   if(beta_com[11]!=0) mt_step[i,11] = 1
+   if(beta_com[12]!=0) mt_step[i,12] = 1
+   if(beta_com[13]!=0) mt_step[i,13] = 1
+   if(beta_com[14]!=0) mt_step[i,14] = 1
+   if(beta_com[15]!=0) mt_step[i,15] = 1
+   if(beta_com[16]!=0) mt_step[i,16] = 1
+   if(beta_com[17]!=0) mt_step[i,17] = 1
+   if(beta_com[18]!=0) mt_step[i,18] = 1
+   if(beta_com[19]!=0) mt_step[i,19] = 1
+   if(beta_com[20]!=0) mt_step[i,20] = 1
+   if(beta_com[21]!=0) mt_step[i,21] = 1
+   if(beta_com[22]!=0) mt_step[i,22] = 1
+   if(beta_com[23]!=0) mt_step[i,23] = 1
+   if(beta_com[24]!=0) mt_step[i,24] = 1
+   if(beta_com[25]!=0) mt_step[i,25] = 1
+   if(beta_com[26]!=0) mt_step[i,26] = 1
+   if(beta_com[27]!=0) mt_step[i,27] = 1
+   if(beta_com[28]!=0) mt_step[i,28] = 1
+   if(beta_com[29]!=0) mt_step[i,29] = 1
+   if(beta_com[30]!=0) mt_step[i,30] = 1
+   if(beta_com[31]!=0) mt_step[i,31] = 1
+   if(beta_com[32]!=0) mt_step[i,32] = 1
+   if(beta_com[33]!=0) mt_step[i,33] = 1
+   if(beta_com[34]!=0) mt_step[i,34] = 1
+}
+var1/100
+2*mean(auc3)-1
+2*sd(auc3)
+las
+#
+var1/100
+2*mean(auc)-1
+2*sd(auc)
+las_mv
+#
+var4/100
+2*mean(auc4)-1
+2*sd(auc4)
+las_aic
+#
+var2/100
+2*mean(auc2)-1
+2*sd(auc2)
+mv_aic
+
+colSums(mt_lasso)
+colSums(mt_step)
+colSums(mt_steplas)
