@@ -1,0 +1,241 @@
+.libPaths(c(.libPaths(), "/scratch/11175031/packages"))
+require(MASS)
+require(AUC)
+require(InformationValue)
+require(glmnet)
+require(iterators)
+require(gtable)
+require(foreach)
+require(rlang)
+require(scales)
+set.seed(990)
+pro = 0.6
+ro = 0.8
+p = 10
+mi = rep(0,p)
+sig = matrix(0.8,p,p)
+diag(sig) = rep(1,p)
+n = c(140,350,700,3500)
+for(h in 1:4){
+  X = matrix(ncol=p,nrow=n[h],0)
+    X = mvrnorm(n[h],mi,sig)
+b0 = rep(0,4)
+b1 = rep(3,3)
+b2 = rep(-2,3)
+beta = c(b0,b1,b2)
+dados = as.data.frame(X)
+  pi = exp(X%*%beta)/(1+exp(X%*%beta))
+  
+  vies1 = matrix(ncol=(p*pro),nrow = 500,0)
+  vies1_null = matrix(ncol=(length(b0)),nrow = 500,0)
+  vies2 = matrix(ncol=(p*pro),nrow = 500,0)
+  vies2_null = matrix(ncol=(length(b0)),nrow = 500,0)
+  vies3 = matrix(ncol=(p*pro),nrow = 500,0)
+  vies3_null = matrix(ncol=(length(b0)),nrow = 500,0)
+  vies4 = matrix(ncol=(p*pro),nrow = 500,0)
+  vies4_null = matrix(ncol=(length(b0)),nrow = 500,0)
+  ac_1 = 0
+  ac_2 = 0
+  ac_3 = 0
+  ac_4 = 0
+  eqm1 = matrix(ncol=(p*pro),nrow = 500,0)
+  eqm1_null = matrix(ncol=(length(b0)),nrow = 500,0)
+  eqm2 = matrix(ncol=(p*pro),nrow = 500,0)
+  eqm2_null = matrix(ncol=(length(b0)),nrow = 500,0)
+  eqm3 = matrix(ncol=(p*pro),nrow = 500,0)
+  eqm3_null = matrix(ncol=(length(b0)),nrow = 500,0)
+  eqm4 = matrix(ncol=(p*pro),nrow = 500,0)
+  eqm4_null = matrix(ncol=(length(b0)),nrow = 500,0)
+  var_lass = 0
+  var_lass_aic = 0
+  var_mv = 0
+  pi_vies_1 = matrix(ncol = 500,nrow = n[h],0)
+  pi_eqm_1 = matrix(ncol = 500,nrow = n[h],0)
+  pi_vies_2 = matrix(ncol = 500,nrow = n[h],0)
+  pi_eqm_2 = matrix(ncol = 500,nrow = n[h],0)
+  pi_vies_3 = matrix(ncol = 500,nrow = n[h],0)
+  pi_eqm_3 = matrix(ncol = 500,nrow = n[h],0)
+  pi_vies_4 = matrix(ncol = 500,nrow = n[h],0)
+  pi_eqm_4 = matrix(ncol = 500,nrow = n[h],0)
+  for(i in 1:500){
+    Y = vector()
+    for(z in 1:n[h]){
+      Y[z] = rbinom(1,1,pi[z])
+    }
+    dados = cbind(dados,Y)
+    
+    d = model.matrix(dados$Y~0+ .,data=dados)
+    
+    lass = cv.glmnet(y=dados$Y,x=d,alpha=1,family="binomial",
+                     type.measure = "auc")
+    
+    lambda_opt = lass$lambda.min 
+    lass = glmnet(y=dados$Y,x=d,alpha=1,family="binomial",lambda = lambda_opt)
+    predict3 = exp(X%*%coef(lass)[-1])/(1+exp(X%*%coef(lass)[-1]))
+    pi_vies_3[,i] = pi - predict3
+    pi_eqm_3[,i] = (pi - predict3)^2
+    
+    if(all(coef(lass)[(((1-pro)*p)+1):p+1]!=0)&&
+       (all(coef(lass)[2:((1-pro)*p+1)]==0)))ac_3 = ac_3+1 
+    eqm3[i,] = (c(b1,b2) - coef(lass)[(((1-pro)*p)+1):p+1])^2
+    eqm3_null[i,] = (b0 - coef(lass)[2:(p - length(c(b1,b2))+1)])^2
+    vies3[i,] = c(b1,b2) - coef(lass)[(((1-pro)*p)+1):p+1]
+    vies3_null[i,] = b0 - coef(lass)[2:(p - length(c(b1,b2))+1)]
+    
+    #lasso+mv
+vec = coef(lass)
+    no = vector()
+    for(j in 2:nrow(vec)){
+      if(vec[j]==0)no[j] = j 
+    }
+    no = na.omit(no)
+    no = no-1
+    train_1 = dados[,-no]
+    if(all(vec==0)) {train_1 = dados}
+    if(length(no)==0){train_1 = dados}
+    model1 = glm(train_1$Y ~ .,data=train_1,family = binomial(link = "logit")
+                 ,control = list(maxit = 100))
+    
+    beta_com = matrix(ncol=p,nrow=1,0)
+    if(!is.na(coef(model1)["V1"])) beta_com[1] = coef(model1)["V1"]
+    if(!is.na(coef(model1)["V2"])) beta_com[2] = coef(model1)["V2"]
+    if(!is.na(coef(model1)["V3"])) beta_com[3] = coef(model1)["V3"]
+    if(!is.na(coef(model1)["V4"])) beta_com[4] = coef(model1)["V4"]
+    if(!is.na(coef(model1)["V5"])) beta_com[5] = coef(model1)["V5"]
+    if(!is.na(coef(model1)["V6"])) beta_com[6] = coef(model1)["V6"]
+    if(!is.na(coef(model1)["V7"])) beta_com[7] = coef(model1)["V7"]
+    if(!is.na(coef(model1)["V8"])) beta_com[8] = coef(model1)["V8"]
+    if(!is.na(coef(model1)["V9"])) beta_com[9] = coef(model1)["V9"]
+    if(!is.na(coef(model1)["V10"])) beta_com[10] = coef(model1)["V10"]
+    
+    if(sum(beta_com!=0)==(p*pro)) var_lass = 1+var_lass
+    if(all(beta_com[(((1-pro)*p)+1):p]!=0)&&
+       (all(beta_com[1:(((1-pro)*p))]==0)))ac_1 = ac_1+1
+    
+    predict1 = exp(X%*%t(beta_com))/(1+exp(X%*%t(beta_com)))
+    pi_vies_1[,i] = pi - predict1
+    pi_eqm_1[,i] = (pi - predict1)^2
+    eqm1[i,] = (c(b1,b2) - beta_com[(((1-pro)*p)+1):p])^2
+    eqm1_null[i,] = (b0 - beta_com[1:(p - length(c(b1,b2)))])^2
+    vies1[i,] = c(b1,b2) - beta_com[(((1-pro)*p)+1):p]
+    vies1_null[i,] = b0 - beta_com[1:(p - length(c(b1,b2)))]
+    #lasso+aic
+    
+    model4 = glm(dados$Y ~ .,data=dados,family = binomial(link = "logit"),
+                 control = list(maxit = 100))
+    step = stepAIC(model4, direction = "both")
+    beta_com = matrix(ncol=p,nrow=1,0)
+    if(!is.na(step$coefficients["V1"])) beta_com[1] = step$coefficients["V1"]
+    if(!is.na(step$coefficients["V2"])) beta_com[2] = step$coefficients["V2"]
+    if(!is.na(step$coefficients["V3"])) beta_com[3] = step$coefficients["V3"]
+    if(!is.na(step$coefficients["V4"])) beta_com[4] = step$coefficients["V4"]
+    if(!is.na(step$coefficients["V5"])) beta_com[5] = step$coefficients["V5"]
+    if(!is.na(step$coefficients["V6"])) beta_com[6] = step$coefficients["V6"]
+    if(!is.na(step$coefficients["V7"])) beta_com[7] = step$coefficients["V7"]
+    if(!is.na(step$coefficients["V8"])) beta_com[8] = step$coefficients["V8"]
+    if(!is.na(step$coefficients["V9"])) beta_com[9] = step$coefficients["V9"]
+    if(!is.na(step$coefficients["V10"])) beta_com[10] = step$coefficients["V10"]
+    
+    d2 = model.matrix(step$formula,data=dados)
+    d2 = d2[,-1]
+    lass = cv.glmnet(y=dados$Y,x=d2,alpha=1,family="binomial",
+                     type.measure = "auc")
+    lambda_opt = lass$lambda.min 
+    lass = glmnet(y=dados$Y,x=d2,alpha=1,family="binomial",lambda = lambda_opt)
+    
+    l_ = as.matrix(coef(lass))
+    if(beta_com[1]!=0) beta_com[1] = l_["V1",]
+    if(beta_com[2]!=0) beta_com[2] = l_["V2",]
+    if(beta_com[3]!=0) beta_com[3] = l_["V3",]
+    if(beta_com[4]!=0) beta_com[4] = l_["V4",]
+    if(beta_com[5]!=0) beta_com[5] = l_["V5",]
+    if(beta_com[6]!=0) beta_com[6] = l_["V6",]
+    if(beta_com[7]!=0) beta_com[7] = l_["V7",]
+    if(beta_com[8]!=0) beta_com[8] = l_["V8",]
+    if(beta_com[9]!=0) beta_com[9] = l_["V9",]
+    if(beta_com[10]!=0) beta_com[10] = l_["V10",]
+    
+    if((sum(beta_com!=0))==(p*pro)) var_lass_aic = 1+var_lass_aic
+    predict4 = exp(X%*%t(beta_com))/(1+exp(X%*%t(beta_com)))
+    pi_vies_4[,i] = pi - predict4
+    pi_eqm_4[,i] = (pi - predict4)^2
+    if(all(beta_com[(((1-pro)*p)+1):p]!=0)&&
+       (all(beta_com[1:(((1-pro)*p))]==0)))ac_4 = ac_4+1
+    eqm4[i,] = (c(b1,b2) - beta_com[(((1-pro)*p)+1):p])^2
+    eqm4_null[i,] = (b0 - beta_com[1:(p - length(c(b1,b2)))])^2
+    vies4[i,] = c(b1,b2) - beta_com[(((1-pro)*p)+1):p]
+    vies4_null[i,] = b0 - beta_com[1:(p - length(c(b1,b2)))]
+    
+    #mv+aic
+    model2 = glm(step$formula,data=dados,family = binomial(link = "logit"),
+                 control = list(maxit = 100))
+    
+    beta_com = matrix(ncol=p,nrow=1,0)
+    if(!is.na(coef(model2)["V1"])) beta_com[1] = coef(model2)["V1"]
+    if(!is.na(coef(model2)["V2"])) beta_com[2] = coef(model2)["V2"]
+    if(!is.na(coef(model2)["V3"])) beta_com[3] = coef(model2)["V3"]
+    if(!is.na(coef(model2)["V4"])) beta_com[4] = coef(model2)["V4"]
+    if(!is.na(coef(model2)["V5"])) beta_com[5] = coef(model2)["V5"]
+    if(!is.na(coef(model2)["V6"])) beta_com[6] = coef(model2)["V6"]
+    if(!is.na(coef(model2)["V7"])) beta_com[7] = coef(model2)["V7"]
+    if(!is.na(coef(model2)["V8"])) beta_com[8] = coef(model2)["V8"]
+    if(!is.na(coef(model2)["V9"])) beta_com[9] = coef(model2)["V9"]
+    if(!is.na(coef(model2)["V10"])) beta_com[10] = coef(model2)["V10"]
+    
+    predict2 = exp(X%*%t(beta_com))/(1+exp(X%*%t(beta_com)))
+pi_vies_2[,i] = pi - predict2
+pi_eqm_2[,i] = (pi - predict2)^2
+if((sum(beta_com!=0))==(p*pro)){
+  var_mv = 1+var_mv}
+if(all(beta_com[(((1-pro)*p)+1):p]!=0)&&
+   (all(beta_com[1:(((1-pro)*p))]==0)))ac_2 = ac_2+1
+eqm2[i,] = (c(b1,b2) - beta_com[(((1-pro)*p)+1):p])^2
+eqm2_null[i,] = (b0 - beta_com[1:(p - length(c(b1,b2)))])^2
+vies2[i,] = c(b1,b2) - beta_com[(((1-pro)*p)+1):p]
+vies2_null[i,] = b0 - beta_com[1:(p - length(c(b1,b2)))]
+
+dados$Y = NULL
+  }
+  print("bobo")
+  
+  print(mean(abs(colSums(vies3)/500)))
+  print(mean(abs(colSums(vies3_null)/500)))
+  print(mean(abs(colSums(vies1)/500)))
+  print(mean(abs(colSums(vies1_null)/500)))
+  print(mean(abs(colSums(vies4)/500)))
+  print(mean(abs(colSums(vies4_null)/500)))
+  print(mean(abs(colSums(vies2)/500)))
+  print(mean(abs(colSums(vies2_null)/500)))
+  
+  print("katia")
+  
+  print(mean(sqrt(colSums(eqm3)/500)))
+  print(mean(sqrt(colSums(eqm3_null)/500)))
+  print(mean(sqrt(colSums(eqm1)/500)))
+  print(mean(sqrt(colSums(eqm1_null)/500)))
+  print(mean(sqrt(colSums(eqm4)/500)))
+  print(mean(sqrt(colSums(eqm4_null)/500)))
+  print(mean(sqrt(colSums(eqm2)/500)))
+  print(mean(sqrt(colSums(eqm2_null)/500)))
+  
+  print("live")
+  
+  print(var_lass/500)
+  print(var_lass_aic/500)
+  print(var_mv/500)
+
+
+  print(ac_3/500)
+  print(ac_1/500)
+  print(ac_4/500)
+  print(ac_2/500)
+  print("errei")
+  print(mean(abs(rowSums(pi_vies_3)/500)))
+  print(mean(sqrt(rowSums(pi_eqm_3)/500)))
+  print(mean(abs(rowSums(pi_vies_1)/500)))
+  print(mean(sqrt(rowSums(pi_eqm_1)/500)))
+  print(mean(abs(rowSums(pi_vies_4)/500)))
+  print(mean(sqrt(rowSums(pi_eqm_4)/500)))
+  print(mean(abs(rowSums(pi_vies_2)/500)))
+  print(mean(sqrt(rowSums(pi_eqm_2)/500)))
+}
